@@ -1,0 +1,147 @@
+#include <Arduino.h>
+
+// ========================================================
+// ESP32 L298N Motor Control + ACS712 Current Monitoring
+// ========================================================
+
+// L298N pins
+const int ENA_PIN = 25;
+const int IN1_PIN = 26;
+const int IN2_PIN = 27;
+
+// ACS712 pin
+const int CURRENT_SENSOR_PIN = 34;
+
+// PWM settings
+const int PWM_CHANNEL = 0;
+const int PWM_FREQUENCY = 5000;
+const int PWM_RESOLUTION = 8;
+
+// ACS712 20A sensitivity
+const float ACS712_SENSITIVITY = 0.100;
+const float ZERO_CURRENT_VOLTAGE = 2.5;
+
+const float ADC_REFERENCE = 3.3;
+const float ADC_MAX = 4095.0;
+
+// Motor speed: 0-255
+int motorSpeed = 180;
+
+unsigned long lastPrintTime = 0;
+const unsigned long PRINT_INTERVAL = 500;
+
+
+// ========================================================
+// Read Current from ACS712
+// ========================================================
+float readCurrent()
+{
+    int adcValue = analogRead(CURRENT_SENSOR_PIN);
+
+    float voltage =
+        (adcValue / ADC_MAX) * ADC_REFERENCE;
+
+    float current =
+        (voltage - ZERO_CURRENT_VOLTAGE)
+        / ACS712_SENSITIVITY;
+
+    return abs(current);
+}
+
+
+// ========================================================
+// Forward Motor
+// ========================================================
+void motorForward()
+{
+    digitalWrite(IN1_PIN, HIGH);
+    digitalWrite(IN2_PIN, LOW);
+
+    ledcWrite(PWM_CHANNEL, motorSpeed);
+}
+
+
+// ========================================================
+// Reverse Motor
+// ========================================================
+void motorReverse()
+{
+    digitalWrite(IN1_PIN, LOW);
+    digitalWrite(IN2_PIN, HIGH);
+
+    ledcWrite(PWM_CHANNEL, motorSpeed);
+}
+
+
+// ========================================================
+// Stop Motor
+// ========================================================
+void motorStop()
+{
+    digitalWrite(IN1_PIN, LOW);
+    digitalWrite(IN2_PIN, LOW);
+
+    ledcWrite(PWM_CHANNEL, 0);
+}
+
+
+// ========================================================
+// Setup
+// ========================================================
+void setup()
+{
+    Serial.begin(115200);
+
+    pinMode(IN1_PIN, OUTPUT);
+    pinMode(IN2_PIN, OUTPUT);
+
+    pinMode(CURRENT_SENSOR_PIN, INPUT);
+
+    ledcSetup(
+        PWM_CHANNEL,
+        PWM_FREQUENCY,
+        PWM_RESOLUTION
+    );
+
+    ledcAttachPin(
+        ENA_PIN,
+        PWM_CHANNEL
+    );
+
+    motorStop();
+
+    Serial.println("========================================");
+    Serial.println(" ESP32 L298N Motor Control System");
+    Serial.println(" ACS712 Current Monitoring");
+    Serial.println("========================================");
+
+    Serial.println("Motor starting in FORWARD direction...");
+    delay(2000);
+
+    motorForward();
+}
+
+
+// ========================================================
+// Main Loop
+// ========================================================
+void loop()
+{
+    float current = readCurrent();
+
+    // Display information
+    if (millis() - lastPrintTime >= PRINT_INTERVAL)
+    {
+        lastPrintTime = millis();
+
+        Serial.print("Motor Direction: FORWARD");
+        Serial.print(" | PWM: ");
+        Serial.print(motorSpeed);
+
+        Serial.print(" | Current: ");
+        Serial.print(current, 2);
+        Serial.println(" A");
+    }
+
+    delay(10);
+}
