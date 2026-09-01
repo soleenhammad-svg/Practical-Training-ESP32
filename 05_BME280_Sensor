@@ -1,0 +1,55 @@
+#include <Arduino.h>
+#include <Wire.h>
+#include <Adafruit_BME280.h>
+
+#define SDA_PIN 21
+#define SCL_PIN 22
+
+Adafruit_BME280 bme;
+
+void setup()
+{
+    Serial.begin(115200);
+
+    Wire.begin(SDA_PIN, SCL_PIN);
+
+    Serial.println("================================");
+    Serial.println("ESP32 + BME280 Sensor");
+    Serial.println("================================");
+
+    if (!bme.begin(0x76))
+    {
+        Serial.println("BME280 sensor not found!");
+        Serial.println("Check wiring and I2C address.");
+
+        while (true)
+        {
+            delay(1000);
+        }
+    }
+
+    Serial.println("BME280 initialized successfully.");
+}
+
+void loop()
+{
+    float temperature = bme.readTemperature();
+    float humidity = bme.readHumidity();
+    float pressure = bme.readPressure() / 100.0F;
+
+    Serial.print("Temperature: ");
+    Serial.print(temperature, 2);
+    Serial.println(" °C");
+
+    Serial.print("Humidity: ");
+    Serial.print(humidity, 2);
+    Serial.println(" %");
+
+    Serial.print("Pressure: ");
+    Serial.print(pressure, 2);
+    Serial.println(" hPa");
+
+    Serial.println("--------------------------------");
+
+    delay(1000);
+}
